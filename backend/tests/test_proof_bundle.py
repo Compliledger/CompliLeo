@@ -39,7 +39,7 @@ def test_create_bundle_returns_expected_fields():
     assert body["decision_result"] is True
     assert body["reason_codes"] == ["TOKEN_ELIGIBLE"]
     assert body["aleo_program"] == "tokenproofx1.aleo"
-    assert body["transition_name"] == "check_token_admission"
+    assert body["transition_name"] == "verify_token"
     assert body["proof_status"] == "simulated"
     assert body["verification_status"] == "pending_aleo_execution"
     assert body["input_commitment"] == hashlib.sha256(b"{}").hexdigest()

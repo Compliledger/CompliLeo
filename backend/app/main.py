@@ -6,7 +6,7 @@ SolvencyProof, CompliGuard) and a deterministic proof-bundle builder.
 """
 from fastapi import FastAPI
 
-from app.routers import compliguard, proof_bundle, solvencyproof, tokenproof
+from app.routers import aleo, compliguard, proof_bundle, solvencyproof, tokenproof
 
 app = FastAPI(
     title="CompliLeo MVP",
@@ -28,3 +28,4 @@ app.include_router(tokenproof.router)
 app.include_router(solvencyproof.router)
 app.include_router(compliguard.router)
 app.include_router(proof_bundle.router)
+app.include_router(aleo.router)

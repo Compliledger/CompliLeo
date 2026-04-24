@@ -32,6 +32,7 @@ from app.models import (
     SolvencyProofRequest,
     TokenProofRequest,
 )
+from app.services.aleo_program_registry import ALEO_PROGRAMS
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -40,21 +41,17 @@ PROOF_STATUS_SIMULATED = "simulated"
 VERIFICATION_STATUS_PENDING = "pending_aleo_execution"
 
 #: Mapping from logical CompliLeo module name -> the Aleo program and
-#: transition that *would* be executed for that module. Exposed so callers
-#: (e.g. the proof-bundle service) don't need to hard-code these strings.
+#: transition that *would* be executed for that module. Sourced from
+#: :mod:`app.services.aleo_program_registry` so program names and
+#: transition names live in exactly one place. Exposed for back-compat
+#: with callers (e.g. the proof-bundle service) that already read this
+#: attribute.
 PROGRAM_BY_MODULE: Dict[str, Dict[str, str]] = {
-    "tokenproof": {
-        "program_name": "tokenproofx1.aleo",
-        "transition_name": "check_token_admission",
-    },
-    "solvencyproof": {
-        "program_name": "solvencypx1.aleo",
-        "transition_name": "check_solvency",
-    },
-    "compliguard": {
-        "program_name": "compliguardx1.aleo",
-        "transition_name": "check_system_health",
-    },
+    module: {
+        "program_name": entry["program_name"],
+        "transition_name": entry["transition_name"],
+    }
+    for module, entry in ALEO_PROGRAMS.items()
 }
 
 
@@ -62,7 +59,7 @@ PROGRAM_BY_MODULE: Dict[str, Dict[str, str]] = {
 # Input preparation
 # ---------------------------------------------------------------------------
 def prepare_tokenproof_input(payload: TokenProofRequest) -> Dict[str, Any]:
-    """Translate a ``TokenProofRequest`` into ``check_token_admission`` inputs.
+    """Translate a ``TokenProofRequest`` into ``verify_token`` inputs.
 
     The Aleo transition expects two ``bool`` arguments. We mirror the
     transition's parameter names so this dict can be consumed verbatim by
@@ -75,7 +72,7 @@ def prepare_tokenproof_input(payload: TokenProofRequest) -> Dict[str, Any]:
 
 
 def prepare_solvencyproof_input(payload: SolvencyProofRequest) -> Dict[str, Any]:
-    """Translate a ``SolvencyProofRequest`` into ``check_solvency`` inputs.
+    """Translate a ``SolvencyProofRequest`` into ``prove_solvency`` inputs.
 
     The Aleo transition expects two ``u64`` values. We keep them as Python
     ``int`` here; serialization to Aleo's ``u64`` literal form (e.g.
@@ -88,7 +85,7 @@ def prepare_solvencyproof_input(payload: SolvencyProofRequest) -> Dict[str, Any]
 
 
 def prepare_compliguard_input(payload: CompliGuardRequest) -> Dict[str, Any]:
-    """Translate a ``CompliGuardRequest`` into ``check_system_health`` inputs."""
+    """Translate a ``CompliGuardRequest`` into ``prove_health`` inputs."""
     return {
         "anomaly_score_below_threshold": bool(payload.anomaly_score_below_threshold),
         "critical_alert_open": bool(payload.critical_alert_open),
