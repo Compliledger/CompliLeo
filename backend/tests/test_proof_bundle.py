@@ -28,7 +28,9 @@ def test_create_bundle_returns_expected_fields():
         "timestamp",
         "input_commitment",
         "aleo_program",
+        "transition_name",
         "proof_status",
+        "verification_status",
         "bundle_hash",
     ):
         assert key in body, f"missing field: {key}"
@@ -37,7 +39,9 @@ def test_create_bundle_returns_expected_fields():
     assert body["decision_result"] is True
     assert body["reason_codes"] == ["TOKEN_ELIGIBLE"]
     assert body["aleo_program"] == "tokenproofx1.aleo"
-    assert body["proof_status"] == "pending"
+    assert body["transition_name"] == "check_token_admission"
+    assert body["proof_status"] == "simulated"
+    assert body["verification_status"] == "pending_aleo_execution"
     assert body["input_commitment"] == "placeholder_input_commitment"
     # SHA-256 hex digest is 64 chars
     assert len(body["bundle_hash"]) == 64
