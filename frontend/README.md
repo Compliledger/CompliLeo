@@ -17,9 +17,9 @@ backend (`backend/app/services/*`) so the demo runs standalone.
 
 1. **Home / Overview** (`/`) — what CompliLeo is and the proof modules it ships.
 2. **Run Demo** (`/demo`) — 4-step wizard:
-   1. **TokenProof** (`tokenproofx1.aleo :: check_token_admission`)
-   2. **SolvencyProof** (`solvencypx1.aleo :: check_solvency`)
-   3. **CompliGuard** (`compliguardx1.aleo :: check_system_health`)
+   1. **TokenProof** (`tokenproofx1.aleo :: verify_token`)
+   2. **SolvencyProof** (`solvencypx1.aleo :: prove_solvency`)
+   3. **CompliGuard** (`compliguardx1.aleo :: prove_health`)
    4. **Combined proof bundle** (aggregate hash)
 3. **Proof Bundle Results** (`/results`) — per-module bundles + combined
    bundle, each showing private inputs, public result, generated bundle
