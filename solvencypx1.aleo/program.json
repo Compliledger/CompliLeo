@@ -1,0 +1,6 @@
+{
+  "program": "solvencypx1.aleo",
+  "version": "0.0.0",
+  "description": "Proves whether reserves are greater than or equal to liabilities, encoding reserve-adequacy rules from tokenization frameworks.",
+  "license": "MIT"
+}

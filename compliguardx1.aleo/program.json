@@ -1,0 +1,6 @@
+{
+  "program": "compliguardx1.aleo",
+  "version": "0.0.0",
+  "description": "Proves whether the system is operating within defined health conditions, detecting anomalies and critical alerts in compliance operations.",
+  "license": "MIT"
+}
