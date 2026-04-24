@@ -1,0 +1,6 @@
+{
+    "program": "tokenproofx1.aleo",
+    "version": "0.0.0",
+    "description": "Minimal proof-program sliver: proves whether a tokenized asset satisfies basic admission rules under GENIUS, CLARITY, and SEC/CFTC tokenization frameworks.",
+    "license": "MIT"
+}
