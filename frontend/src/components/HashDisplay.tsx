@@ -14,7 +14,7 @@ export default function HashDisplay({ hash, label = 'sha-256' }: HashDisplayProp
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1200);
     } catch {
-      // Clipboard API may be unavailable (e.g. insecure context). Fail silent.
+      // Clipboard API may be unavailable (e.g. insecure context). Fail silently.
     }
   }
 
