@@ -136,13 +136,27 @@ cd compliguardx1.aleo
 leo run check_system_health true false
 ```
 
+### Run the demo frontend
+
+A React + Vite + TypeScript + Tailwind frontend lives in [`frontend/`](./frontend/).
+It walks through TokenProof → SolvencyProof → CompliGuard → combined proof
+bundle, showing private inputs, public results, generated bundle hashes, and
+an Aleo proof status placeholder.
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+See [`frontend/README.md`](./frontend/README.md) for details.
+
 ---
 
 ## Scope
 
 This MVP intentionally excludes:
 
-- Frontend or UI
 - Backend services or APIs
 - Wallet integrations
 - External data integrations
