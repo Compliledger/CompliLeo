@@ -21,7 +21,7 @@ conditions hold.
   - `issuer_approved: bool`
   - `asset_type_supported: bool`
 - **Output:** `bool` (`issuer_approved && asset_type_supported`)
-- **Transition:** `check_token_admission`
+- **Transition:** `verify_token`
 
 ### `solvencypx1/` → `solvencypx1.aleo`
 
@@ -31,7 +31,7 @@ Solvency proof. Returns `true` when reserves cover liabilities.
   - `reserves: u64`
   - `liabilities: u64`
 - **Output:** `bool` (`reserves >= liabilities`)
-- **Transition:** `check_solvency`
+- **Transition:** `prove_solvency`
 
 ### `compliguardx1/` → `compliguardx1.aleo`
 
@@ -42,7 +42,7 @@ is operating within healthy bounds.
   - `anomaly_score_below_threshold: bool`
   - `critical_alert_open: bool`
 - **Output:** `bool` (`anomaly_score_below_threshold && !critical_alert_open`)
-- **Transition:** `check_system_health`
+- **Transition:** `prove_health`
 
 ## Running locally
 
@@ -50,18 +50,20 @@ With the [Leo CLI](https://developer.aleo.org/leo/installation) installed:
 
 ```bash
 cd aleo/tokenproofx1
-leo run check_token_admission true true
+leo run verify_token true true
 
 cd ../solvencypx1
-leo run check_solvency 1000000u64 750000u64
+leo run prove_solvency 1000000u64 750000u64
 
 cd ../compliguardx1
-leo run check_system_health true false
+leo run prove_health true false
 ```
 
 ## Status
 
 These are **minimal proof-program slivers** intended for demonstration
-and grant-milestone purposes. They are deliberately not integrated with
-the backend in this repository — backend wiring will be added in a
-subsequent change.
+and grant-milestone purposes. Real execution against Aleo testnet/mainnet
+will be wired in after these slivers are validated. The backend
+currently references the program names (`tokenproofx1.aleo`,
+`solvencypx1.aleo`, `compliguardx1.aleo`) through the Aleo adapter
+placeholder.
