@@ -42,7 +42,7 @@ def test_create_bundle_returns_expected_fields():
     assert body["transition_name"] == "check_token_admission"
     assert body["proof_status"] == "simulated"
     assert body["verification_status"] == "pending_aleo_execution"
-    assert body["input_commitment"] == "placeholder_input_commitment"
+    assert body["input_commitment"] == hashlib.sha256(b"{}").hexdigest()
     # SHA-256 hex digest is 64 chars
     assert len(body["bundle_hash"]) == 64
     int(body["bundle_hash"], 16)  # must be valid hex
