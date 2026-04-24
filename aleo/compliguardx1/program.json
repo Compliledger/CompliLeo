@@ -1,0 +1,6 @@
+{
+    "program": "compliguardx1.aleo",
+    "version": "0.0.0",
+    "description": "Minimal proof-program sliver: proves whether the system is operating within defined health conditions (anomaly score below threshold and no critical alert open).",
+    "license": "MIT"
+}
