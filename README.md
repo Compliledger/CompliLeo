@@ -159,6 +159,32 @@ cd compliguardx1.aleo
 leo run check_system_health true false
 ```
 
+---
+
+## Real Aleo Execution Path
+
+The backend exposes a pluggable execution seam selected by the
+`ALEO_EXECUTION_MODE` environment variable (see [`.env.example`](./.env.example)):
+
+| Mode | Behavior | Leo CLI required? |
+|---|---|---|
+| `simulated` *(default)* | Returns placeholder Aleo metadata for every proof. Used for CI and local development. | No |
+| `local_cli` | Locates the on-disk Leo program from the registry and runs `leo execute` / `leo run` via `subprocess`. Captured stdout, parsed result, and a structured execution status are returned in the response. | Yes |
+| `testnet` *(future)* | Will submit generated proofs to the Aleo network for validator verification, using `ALEO_PRIVATE_KEY` / `ALEO_ACCOUNT_ADDRESS`. | Yes (+ network access) |
+
+Privacy is preserved end-to-end. Private inputs are never logged and
+never echoed in API responses; the response carries
+`inputs_redacted=true` so callers can verify the contract.
+
+> ⚠️ **No real financial data should be used in this MVP.** The local
+> CLI path is intended for demonstration only.
+
+See [`architecture.md`](./architecture.md) and
+[`docs/roadmap.md`](./docs/roadmap.md) for details on the seam and the
+planned testnet integration.
+
+---
+
 ### Run the demo frontend
 
 A React + Vite + TypeScript + Tailwind frontend lives in [`frontend/`](./frontend/).

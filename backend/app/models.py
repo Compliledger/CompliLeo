@@ -1,9 +1,30 @@
 """Pydantic models for CompliLeo proof-orchestration MVP."""
 from __future__ import annotations
 
-from typing import List, Literal
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
+
+
+# ---------------------------------------------------------------------------
+# Aleo execution metadata (returned alongside every proof evaluation)
+# ---------------------------------------------------------------------------
+class AleoExecutionMetadata(BaseModel):
+    """Aleo-side metadata attached to each proof-evaluation response.
+
+    Shape is stable across both ``simulated`` and ``local_cli`` execution
+    modes so frontends can render it uniformly. ``local_execution_result``
+    is populated only when ``execution_mode == "local_cli"``.
+    """
+
+    execution_mode: str
+    program_name: str
+    transition_name: str
+    proof_status: str
+    verification_status: str
+    input_commitment: str
+    proof_reference: str
+    local_execution_result: Optional[Dict[str, Any]] = None
 
 
 # ---------------------------------------------------------------------------
@@ -21,6 +42,7 @@ class TokenProofRequest(BaseModel):
 class TokenProofResponse(BaseModel):
     valid: bool
     reason_codes: List[str]
+    aleo: Optional[AleoExecutionMetadata] = None
 
 
 # ---------------------------------------------------------------------------
@@ -34,6 +56,7 @@ class SolvencyProofRequest(BaseModel):
 class SolvencyProofResponse(BaseModel):
     solvent: bool
     reason_codes: List[str]
+    aleo: Optional[AleoExecutionMetadata] = None
 
 
 # ---------------------------------------------------------------------------
@@ -51,6 +74,7 @@ class CompliGuardRequest(BaseModel):
 class CompliGuardResponse(BaseModel):
     healthy: bool
     reason_codes: List[str]
+    aleo: Optional[AleoExecutionMetadata] = None
 
 
 # ---------------------------------------------------------------------------
