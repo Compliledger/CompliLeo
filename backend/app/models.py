@@ -72,5 +72,7 @@ class ProofBundle(BaseModel):
     timestamp: str
     input_commitment: str
     aleo_program: str
+    transition_name: str
     proof_status: str
+    verification_status: str
     bundle_hash: str

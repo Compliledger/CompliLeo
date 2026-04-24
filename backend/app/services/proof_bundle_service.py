@@ -6,8 +6,9 @@ serialization (sorted keys, no whitespace) of all the other fields, so that
 two clients producing the same logical bundle will always agree on the
 hash.
 
-This MVP uses placeholder values for fields that will eventually be backed
-by real Aleo programs / commitments / proof statuses.
+Aleo program / transition / proof status / verification status fields are
+sourced from :mod:`app.services.aleo_adapter` so that real Aleo execution
+can later be plugged in without changing the bundle layout.
 """
 from __future__ import annotations
 
@@ -17,17 +18,10 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from app.models import ProofBundle, ProofBundleRequest
+from app.services import aleo_adapter
 
-# Mapping from module name -> placeholder Aleo program identifier.
-_ALEO_PROGRAM_BY_MODULE: Dict[str, str] = {
-    "tokenproof": "tokenproofx1.aleo",
-    "solvencyproof": "solvencypx1.aleo",
-    "compliguard": "compliguardx1.aleo",
-}
-
-# Placeholder values used until real Aleo integration lands.
+# Placeholder for the input commitment until real Aleo integration lands.
 _INPUT_COMMITMENT_PLACEHOLDER = "placeholder_input_commitment"
-_PROOF_STATUS_PLACEHOLDER = "pending"
 
 
 def _canonical_json(payload: Dict[str, Any]) -> str:
@@ -52,16 +46,27 @@ def create_bundle(
     """
     ts = timestamp if timestamp is not None else datetime.now(timezone.utc).isoformat()
 
+    # Generate placeholder Aleo proof + verification metadata via the adapter.
+    # Inputs are intentionally empty here: the proof bundle records the
+    # *decision* outcome and the program/transition that would attest to it,
+    # not the raw inputs (which live with the originating proof module and
+    # are summarized by ``input_commitment``).
+    proof = aleo_adapter.generate_proof_placeholder(req.module, inputs={})
+    verification = aleo_adapter.verify_proof_placeholder(proof)
+
     body: Dict[str, Any] = {
         "module": req.module,
         "decision_result": req.decision_result,
         "reason_codes": list(req.reason_codes),
         "timestamp": ts,
         "input_commitment": _INPUT_COMMITMENT_PLACEHOLDER,
-        "aleo_program": _ALEO_PROGRAM_BY_MODULE[req.module],
-        "proof_status": _PROOF_STATUS_PLACEHOLDER,
+        "aleo_program": proof["program_name"],
+        "transition_name": proof["transition_name"],
+        "proof_status": proof["proof_status"],
+        "verification_status": verification["verification_status"],
     }
 
     bundle_hash = _compute_bundle_hash(body)
 
     return ProofBundle(**body, bundle_hash=bundle_hash)
+
