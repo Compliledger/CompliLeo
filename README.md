@@ -6,6 +6,29 @@ CompliLeo is a minimal MVP demonstrating how compliance logic can be encoded as 
 
 ---
 
+## Aleo Programs
+
+The [`aleo/`](./aleo/) directory contains three **minimal proof-program
+slivers** written in Leo:
+
+- [`aleo/tokenproofx1/`](./aleo/tokenproofx1/) → `tokenproofx1.aleo` (transition `verify_token`)
+- [`aleo/solvencypx1/`](./aleo/solvencypx1/) → `solvencypx1.aleo` (transition `prove_solvency`)
+- [`aleo/compliguardx1/`](./aleo/compliguardx1/) → `compliguardx1.aleo` (transition `prove_health`)
+
+Each program is intentionally tiny — just enough to demonstrate
+end-to-end zero-knowledge execution on Aleo for one CompliLeo proof
+concept. **Real execution against Aleo testnet/mainnet (proof
+generation, wallet signing, on-chain verification) will be wired in
+after these slivers are validated.**
+
+The backend currently references these program names
+(`tokenproofx1.aleo`, `solvencypx1.aleo`, `compliguardx1.aleo`) through
+its Aleo adapter placeholder, so the wiring path is in place ahead of
+real Aleo execution. See [`aleo/README.md`](./aleo/README.md) and each
+program's own `README.md` for inputs, output, and demo scenarios.
+
+---
+
 ## Programs
 
 ### 1. `tokenproofx1.aleo` — Token Admission Proof
