@@ -20,9 +20,6 @@ from typing import Any, Dict, Optional
 from app.models import ProofBundle, ProofBundleRequest
 from app.services import aleo_adapter
 
-# Placeholder for the input commitment until real Aleo integration lands.
-_INPUT_COMMITMENT_PLACEHOLDER = "placeholder_input_commitment"
-
 
 def _canonical_json(payload: Dict[str, Any]) -> str:
     """Serialize a dict to canonical JSON (sorted keys, compact separators)."""
@@ -51,7 +48,12 @@ def create_bundle(
     # *decision* outcome and the program/transition that would attest to it,
     # not the raw inputs (which live with the originating proof module and
     # are summarized by ``input_commitment``).
-    proof = aleo_adapter.generate_proof_placeholder(req.module, inputs={})
+    program = aleo_adapter.PROGRAM_BY_MODULE[req.module]
+    proof = aleo_adapter.generate_proof_placeholder(
+        program["program_name"],
+        program["transition_name"],
+        inputs={},
+    )
     verification = aleo_adapter.verify_proof_placeholder(proof)
 
     body: Dict[str, Any] = {
@@ -59,7 +61,7 @@ def create_bundle(
         "decision_result": req.decision_result,
         "reason_codes": list(req.reason_codes),
         "timestamp": ts,
-        "input_commitment": _INPUT_COMMITMENT_PLACEHOLDER,
+        "input_commitment": proof["input_commitment"],
         "aleo_program": proof["program_name"],
         "transition_name": proof["transition_name"],
         "proof_status": proof["proof_status"],

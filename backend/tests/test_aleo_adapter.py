@@ -1,4 +1,7 @@
-"""Tests for the Aleo adapter abstraction."""
+"""Tests for the Aleo adapter placeholder layer (Backend Phase 2)."""
+import hashlib
+import json
+
 from app.models import (
     CompliGuardRequest,
     SolvencyProofRequest,
@@ -37,42 +40,86 @@ def test_prepare_compliguard_input_maps_fields():
 
 
 # ---------------------------------------------------------------------------
+# Module -> program mapping
+# ---------------------------------------------------------------------------
+def test_program_by_module_covers_all_three_programs():
+    assert aleo_adapter.PROGRAM_BY_MODULE["tokenproof"] == {
+        "program_name": "tokenproofx1.aleo",
+        "transition_name": "check_token_admission",
+    }
+    assert aleo_adapter.PROGRAM_BY_MODULE["solvencyproof"] == {
+        "program_name": "solvencypx1.aleo",
+        "transition_name": "check_solvency",
+    }
+    assert aleo_adapter.PROGRAM_BY_MODULE["compliguard"] == {
+        "program_name": "compliguardx1.aleo",
+        "transition_name": "check_system_health",
+    }
+
+
+# ---------------------------------------------------------------------------
 # generate_proof_placeholder
 # ---------------------------------------------------------------------------
-def test_generate_proof_placeholder_tokenproof():
+def test_generate_proof_placeholder_returns_expected_shape():
     inputs = {"issuer_approved": True, "asset_type_supported": True}
-    proof = aleo_adapter.generate_proof_placeholder("tokenproof", inputs)
+    proof = aleo_adapter.generate_proof_placeholder(
+        "tokenproofx1.aleo", "check_token_admission", inputs
+    )
     assert proof["program_name"] == "tokenproofx1.aleo"
     assert proof["transition_name"] == "check_token_admission"
     assert proof["proof_status"] == "simulated"
-    assert proof["inputs"] == inputs
+    assert proof["verification_status"] == "pending_aleo_execution"
+    # input_commitment is a SHA-256 hex digest (64 hex chars)
+    assert isinstance(proof["input_commitment"], str)
+    assert len(proof["input_commitment"]) == 64
+    int(proof["input_commitment"], 16)  # must be valid hex
 
 
-def test_generate_proof_placeholder_solvencyproof():
+def test_generate_proof_placeholder_input_commitment_is_canonical_sha256():
+    inputs = {"reserves": 10, "liabilities": 5}
     proof = aleo_adapter.generate_proof_placeholder(
-        "solvencyproof", {"reserves": 10, "liabilities": 5}
+        "solvencypx1.aleo", "check_solvency", inputs
     )
-    assert proof["program_name"] == "solvencypx1.aleo"
-    assert proof["transition_name"] == "check_solvency"
-    assert proof["proof_status"] == "simulated"
+    expected = hashlib.sha256(
+        json.dumps(inputs, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    assert proof["input_commitment"] == expected
 
 
-def test_generate_proof_placeholder_compliguard():
-    proof = aleo_adapter.generate_proof_placeholder(
-        "compliguard",
-        {"anomaly_score_below_threshold": True, "critical_alert_open": False},
+def test_generate_proof_placeholder_is_deterministic_for_same_inputs():
+    inputs = {"anomaly_score_below_threshold": True, "critical_alert_open": False}
+    a = aleo_adapter.generate_proof_placeholder(
+        "compliguardx1.aleo", "check_system_health", inputs
     )
-    assert proof["program_name"] == "compliguardx1.aleo"
-    assert proof["transition_name"] == "check_system_health"
-    assert proof["proof_status"] == "simulated"
+    b = aleo_adapter.generate_proof_placeholder(
+        "compliguardx1.aleo", "check_system_health", dict(inputs),
+    )
+    assert a == b
 
 
-def test_generate_proof_placeholder_copies_inputs():
-    """Mutating returned inputs must not affect the caller's dict."""
-    inputs = {"issuer_approved": True, "asset_type_supported": True}
-    proof = aleo_adapter.generate_proof_placeholder("tokenproof", inputs)
-    proof["inputs"]["issuer_approved"] = False
-    assert inputs["issuer_approved"] is True
+def test_generate_proof_placeholder_input_commitment_changes_with_inputs():
+    a = aleo_adapter.generate_proof_placeholder(
+        "tokenproofx1.aleo", "check_token_admission",
+        {"issuer_approved": True, "asset_type_supported": True},
+    )
+    b = aleo_adapter.generate_proof_placeholder(
+        "tokenproofx1.aleo", "check_token_admission",
+        {"issuer_approved": False, "asset_type_supported": True},
+    )
+    assert a["input_commitment"] != b["input_commitment"]
+
+
+def test_generate_proof_placeholder_key_order_independent():
+    """Canonical JSON must yield the same commitment regardless of key order."""
+    a = aleo_adapter.generate_proof_placeholder(
+        "tokenproofx1.aleo", "check_token_admission",
+        {"issuer_approved": True, "asset_type_supported": True},
+    )
+    b = aleo_adapter.generate_proof_placeholder(
+        "tokenproofx1.aleo", "check_token_admission",
+        {"asset_type_supported": True, "issuer_approved": True},
+    )
+    assert a["input_commitment"] == b["input_commitment"]
 
 
 # ---------------------------------------------------------------------------
@@ -80,12 +127,14 @@ def test_generate_proof_placeholder_copies_inputs():
 # ---------------------------------------------------------------------------
 def test_verify_proof_placeholder_returns_pending_status():
     proof = aleo_adapter.generate_proof_placeholder(
-        "tokenproof", {"issuer_approved": True, "asset_type_supported": True}
+        "tokenproofx1.aleo", "check_token_admission",
+        {"issuer_approved": True, "asset_type_supported": True},
     )
     verification = aleo_adapter.verify_proof_placeholder(proof)
     assert verification == {
         "program_name": "tokenproofx1.aleo",
         "transition_name": "check_token_admission",
+        "input_commitment": proof["input_commitment"],
         "verification_status": "pending_aleo_execution",
     }
 
