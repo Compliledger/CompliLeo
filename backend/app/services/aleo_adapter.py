@@ -32,13 +32,18 @@ from app.models import (
     SolvencyProofRequest,
     TokenProofRequest,
 )
+from app.services import aleo_execution_adapter
 from app.services.aleo_program_registry import ALEO_PROGRAMS
 
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 PROOF_STATUS_SIMULATED = "simulated"
+PROOF_STATUS_LOCAL_EXECUTED = "local_executed"
+PROOF_STATUS_LOCAL_FAILED = "local_execution_failed"
 VERIFICATION_STATUS_PENDING = "pending_aleo_execution"
+VERIFICATION_STATUS_LOCAL_VERIFIED = "locally_verified"
+VERIFICATION_STATUS_LOCAL_FAILED = "local_verification_failed"
 
 #: Mapping from logical CompliLeo module name -> the Aleo program and
 #: transition that *would* be executed for that module. Sourced from
@@ -150,3 +155,73 @@ def verify_proof_placeholder(proof_metadata: Mapping[str, Any]) -> Dict[str, Any
         "input_commitment": proof_metadata.get("input_commitment"),
         "verification_status": VERIFICATION_STATUS_PENDING,
     }
+
+
+# ---------------------------------------------------------------------------
+# Mode-aware proof / verification metadata
+# ---------------------------------------------------------------------------
+def _proof_reference(program_name: str, input_commitment: str) -> str:
+    """Return a deterministic, opaque reference for a (would-be) proof.
+
+    Real Aleo execution will yield a concrete proof transaction id; in
+    simulated mode we synthesize a stable pseudo-id so downstream
+    consumers always have *some* reference to render.
+    """
+    return f"{program_name}:{input_commitment[:16]}"
+
+
+def build_proof_metadata(
+    module: str,
+    inputs: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """Produce the full ``aleo`` block returned by proof endpoints.
+
+    Dispatches through :mod:`app.services.aleo_execution_adapter` so
+    behavior is governed by the ``ALEO_EXECUTION_MODE`` environment
+    variable:
+
+    * ``simulated`` — returns the legacy placeholder fields plus an
+      ``execution_mode`` of ``"simulated"`` and no
+      ``local_execution_result``.
+    * ``local_cli`` — runs the Leo CLI for the module, attaches the
+      structured ``local_execution_result``, and surfaces a
+      ``proof_status`` / ``verification_status`` derived from the CLI
+      outcome.
+
+    The returned dict always carries the same keys regardless of mode
+    so the API response shape is stable for clients.
+    """
+    program = PROGRAM_BY_MODULE[module]
+    program_name = program["program_name"]
+    transition_name = program["transition_name"]
+    commitment = _input_commitment(inputs)
+
+    base: Dict[str, Any] = {
+        "execution_mode": aleo_execution_adapter.get_execution_mode(),
+        "program_name": program_name,
+        "transition_name": transition_name,
+        "proof_status": PROOF_STATUS_SIMULATED,
+        "verification_status": VERIFICATION_STATUS_PENDING,
+        "input_commitment": commitment,
+        "proof_reference": _proof_reference(program_name, commitment),
+        "local_execution_result": None,
+    }
+
+    if base["execution_mode"] == aleo_execution_adapter.EXECUTION_MODE_SIMULATED:
+        return base
+
+    # local_cli — invoke the Leo CLI via the execution adapter. The
+    # returned ``local_execution_result`` carries only redacted input
+    # metadata; raw private values never appear here.
+    execution = aleo_execution_adapter.execute(module, inputs)
+    base["local_execution_result"] = execution
+
+    status = execution.get("execution_status")
+    if status == aleo_execution_adapter.STATUS_SUCCESS:
+        base["proof_status"] = PROOF_STATUS_LOCAL_EXECUTED
+        base["verification_status"] = VERIFICATION_STATUS_LOCAL_VERIFIED
+    else:
+        base["proof_status"] = PROOF_STATUS_LOCAL_FAILED
+        base["verification_status"] = VERIFICATION_STATUS_LOCAL_FAILED
+
+    return base

@@ -28,6 +28,8 @@ dist/
 # ----------------------------
 .env
 .env.*
+# Allow the committed example file (real secrets must NEVER be committed).
+!.env.example
 *.env
 
 # ----------------------------
