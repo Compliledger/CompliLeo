@@ -1,163 +1,176 @@
 # CompliLeo
 
-> **CompliLeo turns regulatory requirements from GENIUS, CLARITY, and SEC/CFTC tokenization frameworks into executable zero-knowledge proof programs on Aleo.**
+> **CompliLeo turns regulatory requirements from the GENIUS Act, the
+> CLARITY Act, and the SEC/CFTC tokenization framework into executable
+> zero-knowledge proof programs on Aleo.**
 
-CompliLeo is a minimal MVP demonstrating how compliance logic can be encoded as on-chain, privacy-preserving proofs using the [Leo programming language](https://leo-lang.org/) on the [Aleo network](https://aleo.org/). This is a grant/demo sliver — not the full CompliStack platform.
+CompliLeo is a minimal MVP that demonstrates how compliance logic for
+regulated tokenized markets can be expressed as **ZK proof programs**
+written in [Leo](https://leo-lang.org/) and executed on the
+[Aleo network](https://aleo.org/), so that regulated private stablecoin
+and tokenized-asset systems can prove the conditions a regulator cares
+about **without disclosing the underlying private financial data**.
 
----
-
-## Aleo Programs
-
-The [`aleo/`](./aleo/) directory contains three **minimal proof-program
-slivers** written in Leo:
-
-- [`aleo/tokenproofx1/`](./aleo/tokenproofx1/) → `tokenproofx1.aleo` (transition `verify_token`)
-- [`aleo/solvencypx1/`](./aleo/solvencypx1/) → `solvencypx1.aleo` (transition `prove_solvency`)
-- [`aleo/compliguardx1/`](./aleo/compliguardx1/) → `compliguardx1.aleo` (transition `prove_health`)
-
-Each program is intentionally tiny — just enough to demonstrate
-end-to-end zero-knowledge execution on Aleo for one CompliLeo proof
-concept. **Real execution against Aleo testnet/mainnet (proof
-generation, wallet signing, on-chain verification) will be wired in
-after these slivers are validated.**
-
-The backend currently references these program names
-(`tokenproofx1.aleo`, `solvencypx1.aleo`, `compliguardx1.aleo`) through
-its Aleo adapter placeholder, so the wiring path is in place ahead of
-real Aleo execution. See [`aleo/README.md`](./aleo/README.md) and each
-program's own `README.md` for inputs, output, and demo scenarios.
+This repository is a grant/demo sliver of the broader CompliStack vision —
+not the full platform.
 
 ---
 
-## Programs
+## What CompliLeo Is
 
-### 1. `tokenproofx1.aleo` — Token Admission Proof
+CompliLeo is a **ZK proof execution layer for regulated private financial
+systems**. It is *not*:
 
-Proves whether a tokenized asset satisfies basic admission rules.
+- an AI auditor,
+- a blockchain analytics tool,
+- a surveillance product, or
+- a wallet / payment rail.
 
-| Input | Type | Description |
+It is a small set of Leo programs, an orchestration backend, and a demo
+frontend that together show how a regulated issuer or platform can answer
+questions like:
+
+- *"Is this tokenized asset eligible to enter our system?"*
+- *"Are reserves sufficient to cover liabilities right now?"*
+- *"Is the compliance system itself operating within healthy bounds?"*
+
+…with a **public proof result** (true / false) backed by **private inputs**
+that never leave the prover.
+
+---
+
+## Why Regulation Is the Driver
+
+Regulated tokenized markets are converging on three requirements:
+
+1. **Verifiability** — issuers, platforms, and counterparties must be
+   able to demonstrate compliance to regulators and to each other.
+2. **Privacy** — reserves, customer balances, internal risk telemetry,
+   and counterparty exposures cannot be broadcast in cleartext.
+3. **Continuity** — checks must be repeatable on a recurring basis, not
+   just at one-off audit time.
+
+Traditional disclosure-based compliance breaks at least one of those.
+**Zero-knowledge proofs** satisfy all three: a proof can be verified by
+anyone, the inputs stay private, and the same program can be run again
+every block, every day, every reporting period.
+
+CompliLeo encodes that pattern for three regulatory primitives drawn
+from current U.S. digital asset frameworks.
+
+---
+
+## GENIUS / CLARITY / SEC-CFTC Alignment
+
+| Framework | What it requires | CompliLeo program |
 |---|---|---|
-| `issuer_approved` | `bool` | Whether the issuer has been approved by the compliance authority |
-| `asset_type_supported` | `bool` | Whether the asset type is supported on the platform |
+| **GENIUS Act** (stablecoins) | Approved issuers, adequate reserve backing of outstanding liabilities | **SolvencyProof** — proves `reserves >= liabilities` without revealing either figure |
+| **CLARITY Act** (digital asset market structure) | Asset classification and supported-asset gating before admission | **TokenProof** — proves an asset's issuer is approved and its asset type is supported |
+| **SEC / CFTC tokenization framework** | Operational integrity and ongoing monitoring of the tokenized-market lifecycle | **CompliGuard** — proves the compliance system is healthy (anomaly score within bounds, no critical alert open) |
 
-**Output:** `bool` — `true` only when both conditions are satisfied.
-
-**Transition:** `check_token_admission`
-
-```leo
-transition check_token_admission(
-    issuer_approved: bool,
-    asset_type_supported: bool
-) -> bool {
-    return issuer_approved && asset_type_supported;
-}
-```
+A full mapping is in [`docs/regulatory-mapping.md`](./docs/regulatory-mapping.md).
+This is a high-level engineering mapping, not legal advice.
 
 ---
 
-### 2. `solvencypx1.aleo` — Solvency Proof
+## How the MVP Works
 
-Proves whether reserves are greater than or equal to liabilities.
+The MVP has three layers that line up end-to-end:
 
-| Input | Type | Description |
+```
+Frontend (React / Vite / Tailwind)
+        │
+        ▼
+Backend (FastAPI orchestration + Aleo adapter)
+        │
+        ▼
+Aleo Programs (Leo source in aleo/)
+        │
+        ▼  (today: simulated;  next: real Aleo execution + testnet verification)
+Aleo Network Verification
+```
+
+For each proof module the flow is the same:
+
+1. The user enters **private inputs** in the frontend (or via the API).
+2. The backend evaluates the same boolean rule that the Leo program
+   encodes and returns a **public proof result** plus reason codes.
+3. The backend builds a **deterministic proof bundle** (canonical-JSON
+   SHA-256 hash) stamped with the Aleo program name and transition that
+   *would* attest to the result.
+4. The backend's **Aleo adapter** prepares typed Leo inputs and currently
+   returns a `simulated` proof status. This is the seam where real Aleo
+   execution will plug in.
+
+A full per-step demo script is in [`demo-notes.md`](./demo-notes.md), and
+the architecture and execution model are in
+[`architecture.md`](./architecture.md).
+
+---
+
+## Backend Architecture
+
+The FastAPI service in [`backend/`](./backend/) exposes proof-evaluation
+endpoints, a deterministic proof-bundle builder, and a read API over the
+Aleo program registry.
+
+| Method | Path | Purpose |
 |---|---|---|
-| `reserves` | `u64` | Total reserve amount held |
-| `liabilities` | `u64` | Total outstanding liabilities |
+| `GET`  | `/health` | Liveness probe |
+| `POST` | `/api/tokenproof/evaluate` | Evaluate token admission |
+| `POST` | `/api/solvencyproof/evaluate` | Evaluate reserve adequacy |
+| `POST` | `/api/compliguard/evaluate` | Evaluate system health |
+| `POST` | `/api/proof-bundle/create` | Build a hash-anchored proof bundle |
+| `GET`  | `/api/aleo/programs` | List registered Aleo programs |
+| `GET`  | `/api/aleo/programs/{module}` | Get one program's metadata |
 
-**Output:** `bool` — `true` when `reserves >= liabilities`.
+Key design points:
 
-**Transition:** `check_solvency`
+- **Single source of truth** for Aleo programs:
+  [`backend/app/services/aleo_program_registry.py`](./backend/app/services/aleo_program_registry.py)
+  records each program's name, transition, local Leo source path, and
+  description. Nothing in the codebase hardcodes a program name outside
+  the registry.
+- **Aleo adapter**:
+  [`backend/app/services/aleo_adapter.py`](./backend/app/services/aleo_adapter.py)
+  reads the registry and exposes `prepare_*_input(...)` helpers that
+  format typed Leo inputs (`bool`, `u64`). Today the adapter returns a
+  simulated proof status; tomorrow the same surface will drive real
+  execution.
+- **Deterministic bundles**: `bundle_hash` is `SHA-256` over
+  canonical JSON (sorted keys, no whitespace) of the bundle payload, so
+  any client can independently reproduce the same hash for the same
+  logical bundle.
 
-```leo
-transition check_solvency(
-    reserves: u64,
-    liabilities: u64
-) -> bool {
-    return reserves >= liabilities;
-}
-```
-
----
-
-### 3. `compliguardx1.aleo` — System Health Proof
-
-Proves whether the compliance system itself is operating within defined health conditions.
-
-| Input | Type | Description |
-|---|---|---|
-| `anomaly_score_below_threshold` | `bool` | Whether the anomaly detection score is below the configured threshold |
-| `critical_alert_open` | `bool` | Whether a critical compliance alert is currently open |
-
-**Output:** `bool` — `true` only when the anomaly score is within bounds AND no critical alert is open.
-
-**Transition:** `check_system_health`
-
-```leo
-transition check_system_health(
-    anomaly_score_below_threshold: bool,
-    critical_alert_open: bool
-) -> bool {
-    return anomaly_score_below_threshold && !critical_alert_open;
-}
-```
+See [`backend/README.md`](./backend/README.md) for endpoint examples and
+local-dev instructions.
 
 ---
 
-## Repository Structure
+## Aleo Program Architecture
 
-```
-CompliLeo/
-├── README.md
-├── demo-notes.md
-├── tokenproofx1.aleo/
-│   ├── program.json
-│   └── src/
-│       └── main.leo
-├── solvencypx1.aleo/
-│   ├── program.json
-│   └── src/
-│       └── main.leo
-└── compliguardx1.aleo/
-    ├── program.json
-    └── src/
-        └── main.leo
-```
+The [`aleo/`](./aleo/) directory contains three intentionally-tiny Leo
+programs. Each one encodes one CompliLeo proof concept and exposes a
+single transition:
+
+| Module | Program | Transition | Inputs | Output |
+|---|---|---|---|---|
+| `tokenproof` | `tokenproofx1.aleo` | `verify_token` | `issuer_approved: bool`, `asset_type_supported: bool` | `bool` (`true` iff both) |
+| `solvencyproof` | `solvencypx1.aleo` | `prove_solvency` | `reserves: u64`, `liabilities: u64` | `bool` (`true` iff `reserves >= liabilities`) |
+| `compliguard` | `compliguardx1.aleo` | `prove_health` | `anomaly_score_below_threshold: bool`, `critical_alert_open: bool` | `bool` (`true` iff anomaly within bounds AND no critical alert) |
+
+Each program is its own Leo project (`program.json` + `src/main.leo`)
+and is small on purpose — small enough to make end-to-end Aleo
+execution tractable, broad enough to cover the three regulatory
+primitives above. See [`aleo/README.md`](./aleo/README.md) and each
+program's own `README.md` for inputs and demo scenarios.
 
 ---
 
-## Regulatory Framing
+## Frontend Demo Flow
 
-Each program encodes a slice of the regulatory requirements emerging from:
-
-- **GENIUS Act** — Stablecoin reserve and issuer approval requirements
-- **CLARITY Act** — Digital asset classification and supported asset-type rules
-- **SEC / CFTC tokenization frameworks** — Compliance health monitoring and anomaly detection obligations
-
-By running these proofs on Aleo, issuers and auditors can demonstrate compliance **without revealing the underlying sensitive data** — the core value proposition of zero-knowledge cryptography applied to financial regulation.
-
----
-
-## Getting Started
-
-### Prerequisites
-
-- [Leo CLI](https://developer.aleo.org/leo/installation) ≥ 2.0
-
-### Run a program locally
-
-```bash
-# Example: prove token admission
-cd tokenproofx1.aleo
-leo run check_token_admission true true
-
-# Example: prove solvency
-cd solvencypx1.aleo
-leo run check_solvency 1000000u64 750000u64
-
-# Example: prove system health
-cd compliguardx1.aleo
-leo run check_system_health true false
-```
+A React + Vite + TypeScript + Tailwind demo lives in
+[`frontend/`](./frontend/). It is a guided 4-step walkthrough:
 
 ---
 
@@ -186,11 +199,21 @@ planned testnet integration.
 ---
 
 ### Run the demo frontend
+1. **TokenProof** — enter `issuer_approved` and `asset_type_supported`,
+   see the public result, and a bundle stamped with
+   `tokenproofx1.aleo :: verify_token`.
+2. **SolvencyProof** — enter `reserves` and `liabilities`, see whether
+   the system is solvent without disclosing the values, and a bundle
+   stamped with `solvencypx1.aleo :: prove_solvency`.
+3. **CompliGuard** — enter the system-health flags, see whether the
+   compliance system itself is healthy, and a bundle stamped with
+   `compliguardx1.aleo :: prove_health`.
+4. **Combined proof bundle** — aggregate the three bundles into a single
+   hash-anchored object that represents the compliance posture of the
+   system at this point in time.
 
-A React + Vite + TypeScript + Tailwind frontend lives in [`frontend/`](./frontend/).
-It walks through TokenProof → SolvencyProof → CompliGuard → combined proof
-bundle, showing private inputs, public results, generated bundle hashes, and
-an Aleo proof status placeholder.
+The frontend mirrors the backend's evaluators and canonical-JSON hashing
+client-side, so the demo runs standalone.
 
 ```bash
 cd frontend
@@ -202,219 +225,74 @@ See [`frontend/README.md`](./frontend/README.md) for details.
 
 ---
 
-## Scope
+## Current Status: Simulated Proof Adapter
 
-This MVP intentionally excludes:
+CompliLeo is intentionally shipped in two stages.
 
-- Backend services or APIs
-- Wallet integrations
-- External data integrations
+**Today (this MVP):**
 
-These will be addressed in subsequent CompliStack platform milestones.
+- Leo source for all three programs is in the repo and runs locally
+  with the Leo CLI.
+- The backend evaluates the same boolean rules and emits deterministic
+  proof bundles.
+- The Aleo adapter prepares typed Leo inputs and stamps bundles with
+  `proof_status: "simulated"` and
+  `verification_status: "pending_aleo_execution"`.
+- No Aleo network calls, no wallet signing, no on-chain verification.
+
+This is deliberate: the wiring path, program names, transitions, input
+types, and bundle layout are all in place so the seam where real Aleo
+execution plugs in is small and obvious.
+
+---
+
+## Next Step: Real Aleo Execution / Testnet Verification
+
+The next phase replaces the simulated adapter with real execution:
+
+1. Use each program's `local_path` from the registry to load and
+   compile the Leo program.
+2. Invoke the named transition against the Aleo testnet (or a local
+   `snarkOS` / `leo` runner) with the typed inputs already prepared by
+   `aleo_adapter.prepare_*_input`.
+3. Replace the placeholder `proof_status`, `verification_status`, and
+   `input_commitment` fields with values produced by real proof
+   generation and on-chain verification.
+
+No public surface of the API, the adapter, or the proof-bundle layout
+needs to change for that step. See [`docs/roadmap.md`](./docs/roadmap.md)
+for the full multi-phase plan.
+
+---
+
+## Repository Layout
+
+```
+CompliLeo/
+├── README.md                       # this file
+├── demo-notes.md                   # 60-sec pitch, 3-min walkthrough, demo flow
+├── architecture.md                 # technical architecture + execution model
+├── docs/
+│   ├── regulatory-mapping.md       # GENIUS / CLARITY / SEC-CFTC mapping
+│   ├── roadmap.md                  # Phase 1 → Phase 5 roadmap
+│   ├── sample-payloads.md          # example requests / responses
+│   └── screenshots.md              # screenshot placeholders + capture guide
+├── aleo/                           # Leo programs (TokenProof, SolvencyProof, CompliGuard)
+├── backend/                        # FastAPI orchestration + Aleo adapter
+└── frontend/                       # React / Vite / Tailwind demo
+```
 
 ---
 
 ## License
 
-MIT
-🚀 CompliLeo
+MIT — see [`LICENSE`](./LICENSE).
 
-ZK Proof Programs for Private Financial Verification on Aleo
+---
 
-⸻
+## Contact
 
-🧠 Overview
+Maranda Harris — Founder, CompliLedger.
 
-CompliLeo is a set of zero-knowledge programs built on Aleo that enable private financial systems to prove required conditions without exposing sensitive data.
-
-As digital asset infrastructure evolves under regulatory frameworks such as GENIUS, CLARITY, and SEC/CFTC tokenization guidance, systems must demonstrate:
-	•	asset legitimacy
-	•	reserve backing
-	•	operational integrity
-
-At the same time, emerging systems — including private stablecoins and tokenized markets — are moving toward privacy-preserving architectures.
-
-This creates a fundamental challenge:
-
-How can financial systems remain verifiable without disclosure?
-
-CompliLeo solves this by encoding these requirements as zero-knowledge programs.
-
-⸻
-
-⚙️ What This MVP Demonstrates
-
-This repository contains a minimal, functional “sliver” of CompliLeo, designed to demonstrate real execution on Aleo.
-
-It includes three proof programs:
-
-🔹 TokenProof
-
-Verifies that an asset meets defined issuance and eligibility conditions.
-
-👉 Output:
-Token Valid = TRUE / FALSE
-
-⸻
-
-🔹 SolvencyProof
-
-Verifies that reserves are greater than or equal to liabilities.
-
-👉 Output:
-Solvent = TRUE / FALSE
-
-⸻
-
-🔹 CompliGuard
-
-Verifies that a system is operating within defined conditions.
-
-👉 Output:
-System Healthy = TRUE / FALSE
-
-⸻
-
-🔬 Execution Model (Aleo)
-
-CompliLeo leverages Aleo’s zero-knowledge execution model:
-Private Inputs → Private Execution → ZK Proof → On-chain Verification
-	•	Inputs remain private
-	•	Logic executes off-chain
-	•	Proof is submitted to the network
-	•	Validators verify correctness without seeing underlying data
-
-👉 Aleo verifies computation, not data
-
-⸻
-
-🧩 Architecture
-Private Financial / System Inputs
-- Token issuance data
-- Reserve and liability data
-- Monitoring / risk signals
-
-        ↓
-
-CompliLeo (Leo Programs)
-- TokenProof
-- SolvencyProof
-- CompliGuard
-
-        ↓
-
-Aleo ZK Execution
-- Private execution (snarkVM)
-- Proof generation
-
-        ↓
-
-Aleo Network Verification
-- Proof submission
-- Validator verification
-- On-chain result
-
-        ↓
-
-Verification Consumers
-- Stablecoin issuer
-- Auditor / regulator
-- Counterparty / application
-📈 Why This Matters
-
-Financial systems are increasingly required to meet regulatory obligations while preserving privacy.
-
-CompliLeo demonstrates a new model:
-
-Verification without disclosure
-
-Instead of exposing:
-	•	reserves
-	•	transaction data
-	•	system logs
-
-Systems can prove:
-	•	solvency
-	•	compliance
-	•	operational integrity
-
-using zero-knowledge proofs.
-
-⸻
-
-🔥 Impact on Aleo
-
-CompliLeo introduces recurring ZK execution use cases:
-	•	solvency attestations
-	•	asset validation
-	•	system integrity proofs
-
-These use cases:
-	•	drive network activity
-	•	increase proof generation demand
-	•	expand Aleo into regulated financial infrastructure
-
-⸻
-
-🤝 Ecosystem Fit
-
-CompliLeo is designed to integrate with:
-	•	private stablecoin systems
-	•	payment infrastructure
-	•	tokenized asset platforms
-	•	institutional DeFi (ZeFi)
-
-It enables these systems to:
-	•	remain private
-	•	remain verifiable
-	•	meet regulatory expectations
-
-⸻
-
-🧪 MVP Scope
-
-This project is intentionally scoped as a minimal proof-of-concept:
-	•	simple Leo programs
-	•	no external integrations
-	•	no frontend or APIs
-	•	no real financial data
-
-👉 The goal is to demonstrate feasibility of ZK-based financial verification on Aleo
-
-⸻
-
-🛣️ Future Work
-	•	Expanded regulatory mappings (GENIUS, CLARITY, SEC/CFTC)
-	•	Richer proof conditions and composability
-	•	Integration with stablecoin and payment systems
-	•	Selective disclosure / verifiable credentials
-	•	Full CompliStack architecture
-
-⸻
-
-🧠 Key Idea
-
-CompliLeo turns regulatory requirements into executable zero-knowledge proofs.
-
-⸻
-
-🏆 Project Context
-
-This project is part of a broader vision to build CompliStack, a regulatory infrastructure layer for tokenized financial systems.
-
-CompliLeo represents the ZK execution layer of that architecture.
-
-⸻
-
-📬 Contact
-
-Maranda Harris
-Founder, CompliLedger
-
-⸻
-
-🔥 Final Note
-
-Private financial systems require a new trust model.
-CompliLeo demonstrates what that model looks like on Aleo.
-
+CompliLeo is the ZK execution layer of the broader CompliStack vision
+for regulated tokenized markets.
